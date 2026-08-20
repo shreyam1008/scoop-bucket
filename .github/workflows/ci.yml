@@ -63,12 +63,19 @@ jobs:
           $scoop = Join-Path $coreDir 'bin\scoop.ps1'
           $env:PATH = "$(Join-Path $scoopDir 'shims');$env:PATH"
           & $scoop config aria2-enabled false
-          & $scoop bucket add shreyam (Join-Path $env:GITHUB_WORKSPACE 'bucket-repo')
+          if ($LASTEXITCODE -ne 0) { throw 'Scoop configuration failed.' }
+          $bucketPath = (Resolve-Path (Join-Path $env:GITHUB_WORKSPACE 'bucket-repo')).Path
+          $bucketUrl = ([System.Uri]::new($bucketPath)).AbsoluteUri
+          & $scoop bucket add shreyam $bucketUrl
+          if ($LASTEXITCODE -ne 0) { throw 'Adding the local bucket failed.' }
           & $scoop install shreyam/protopeek
+          if ($LASTEXITCODE -ne 0) { throw 'ProtoPeek installation failed.' }
           if ((protopeek -version 2>&1) -notmatch 'v0\.3\.0') { throw 'protopeek version mismatch.' }
           if ((pp -version 2>&1) -notmatch 'v0\.3\.0') { throw 'pp version mismatch.' }
           & $scoop update protopeek
+          if ($LASTEXITCODE -ne 0) { throw 'ProtoPeek update failed.' }
           & $scoop uninstall protopeek
+          if ($LASTEXITCODE -ne 0) { throw 'ProtoPeek uninstall failed.' }
           if (Test-Path (Join-Path $scoopDir 'shims\protopeek.*')) { throw 'protopeek shim was not removed.' }
           if (Test-Path (Join-Path $scoopDir 'shims\pp.*')) { throw 'pp shim was not removed.' }
 
