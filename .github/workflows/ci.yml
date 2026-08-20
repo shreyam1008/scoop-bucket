@@ -1,0 +1,95 @@
+name: Bucket CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  protopeek:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      SCOOP_CORE_SHA: b588a06e41d920d2123ec70aee682bae14935939
+    steps:
+      - name: Checkout bucket
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: bucket-repo
+
+      - name: Checkout pinned Scoop installer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ScoopInstaller/Install
+          ref: b0ee913725139b816f9178163af0aecdba07a7ed
+          path: scoop-install
+
+      - name: Checkout pinned Scoop core
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ScoopInstaller/Scoop
+          ref: b588a06e41d920d2123ec70aee682bae14935939
+          path: scoop-core
+
+      - name: Validate manifests
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $schema = Join-Path $env:GITHUB_WORKSPACE 'scoop-core\schema.json'
+          $validator = Join-Path $env:GITHUB_WORKSPACE 'scoop-core\supporting\validator\bin\validator.exe'
+          $manifests = Get-ChildItem (Join-Path $env:GITHUB_WORKSPACE 'bucket-repo\bucket\*.json')
+          & $validator $schema $manifests.FullName
+          if ($LASTEXITCODE -ne 0) { throw 'Scoop manifest validation failed.' }
+
+      - name: Install and smoke test ProtoPeek
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $scoopDir = Join-Path $env:RUNNER_TEMP 'scoop'
+          & (Join-Path $env:GITHUB_WORKSPACE 'scoop-install\install.ps1') -ScoopDir $scoopDir -RunAsAdmin
+          $env:SCOOP = $scoopDir
+          $coreDir = Join-Path $scoopDir 'apps\scoop\current'
+          git -C $coreDir fetch --depth=1 origin $env:SCOOP_CORE_SHA
+          git -C $coreDir checkout --detach $env:SCOOP_CORE_SHA
+          if ((git -C $coreDir rev-parse HEAD).Trim() -ne $env:SCOOP_CORE_SHA) {
+            throw 'Installed Scoop core does not match the pinned commit.'
+          }
+
+          $scoop = Join-Path $coreDir 'bin\scoop.ps1'
+          $env:PATH = "$(Join-Path $scoopDir 'shims');$env:PATH"
+          & $scoop config aria2-enabled false
+          & $scoop bucket add shreyam (Join-Path $env:GITHUB_WORKSPACE 'bucket-repo')
+          & $scoop install shreyam/protopeek
+          if ((protopeek -version 2>&1) -notmatch 'v0\.3\.0') { throw 'protopeek version mismatch.' }
+          if ((pp -version 2>&1) -notmatch 'v0\.3\.0') { throw 'pp version mismatch.' }
+          & $scoop update protopeek
+          & $scoop uninstall protopeek
+          if (Test-Path (Join-Path $scoopDir 'shims\protopeek.*')) { throw 'protopeek shim was not removed.' }
+          if (Test-Path (Join-Path $scoopDir 'shims\pp.*')) { throw 'pp shim was not removed.' }
+
+      - name: Verify autoupdate contract
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $sourceDir = Join-Path $env:GITHUB_WORKSPACE 'bucket-repo\bucket'
+          $updatedDir = Join-Path $env:RUNNER_TEMP 'autoupdate'
+          New-Item -ItemType Directory -Path $updatedDir | Out-Null
+          Copy-Item (Join-Path $sourceDir 'protopeek.json') $updatedDir
+          $env:SCOOP = Join-Path $env:RUNNER_TEMP 'scoop'
+          $env:SCOOP_HOME = Join-Path $env:GITHUB_WORKSPACE 'scoop-core'
+          & (Join-Path $env:SCOOP_HOME 'bin\checkver.ps1') -App protopeek -Dir $updatedDir -ForceUpdate -Version 0.3.0 -ThrowError
+          $schema = Join-Path $env:SCOOP_HOME 'schema.json'
+          $validator = Join-Path $env:SCOOP_HOME 'supporting\validator\bin\validator.exe'
+          & $validator $schema (Join-Path $updatedDir 'protopeek.json')
+          if ($LASTEXITCODE -ne 0) { throw 'Autoupdated manifest validation failed.' }
+          $expected = Get-Content (Join-Path $sourceDir 'protopeek.json') -Raw | ConvertFrom-Json
+          $actual = Get-Content (Join-Path $updatedDir 'protopeek.json') -Raw | ConvertFrom-Json
+          foreach ($arch in '64bit', 'arm64', '32bit') {
+            if ($actual.architecture.$arch.url -ne $expected.architecture.$arch.url) { throw "$arch URL drifted." }
+            if ($actual.architecture.$arch.hash -ne $expected.architecture.$arch.hash) { throw "$arch hash drifted." }
+          }
