@@ -1,20 +1,20 @@
 {
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Lightweight local protocol workbench with native gRPC and HTTP, bounded discovery, Health checks, and network evidence.",
   "homepage": "https://protopeek.shreyam1008.com.np/",
   "license": "MIT",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/shreyam1008/ProtoPeek/releases/download/v0.3.1/protopeek_0.3.1_windows_x86_64.zip",
-      "hash": "79570ed55c2c9a79c923fa11df884c035748e86d4d161ca6a49f055adb5535b6"
+      "url": "https://github.com/shreyam1008/ProtoPeek/releases/download/v0.3.2/protopeek_0.3.2_windows_x86_64.zip",
+      "hash": "79f792e6604b8be01c316eff01ec860a9063f2a307c6e936989601bd72d3ecea"
     },
     "arm64": {
-      "url": "https://github.com/shreyam1008/ProtoPeek/releases/download/v0.3.1/protopeek_0.3.1_windows_arm64.zip",
-      "hash": "e92d8fd81a317e4a5e9f430f1309993ccf8bdf95756a5c01e3b593cc9a5cf4ec"
+      "url": "https://github.com/shreyam1008/ProtoPeek/releases/download/v0.3.2/protopeek_0.3.2_windows_arm64.zip",
+      "hash": "20d75d859091e5e5ee0c161ec4e1d0f26b0267d63c9ce5b28b5c54cceba4fffa"
     },
     "32bit": {
-      "url": "https://github.com/shreyam1008/ProtoPeek/releases/download/v0.3.1/protopeek_0.3.1_windows_x86_32.zip",
-      "hash": "ae0e2938f15c23bdbcc934da8a6b3ed3fa9782a5e3fbb300f3aeb68854aaec8f"
+      "url": "https://github.com/shreyam1008/ProtoPeek/releases/download/v0.3.2/protopeek_0.3.2_windows_x86_32.zip",
+      "hash": "1957da230e6ca8186ab7b75be97fa6ab174ed01f6ab4802df3cec63f4048c218"
     }
   },
   "bin": [
