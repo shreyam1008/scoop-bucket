@@ -60,7 +60,8 @@ jobs:
             throw 'Installed Scoop core does not match the pinned commit.'
           }
 
-          $scoop = Join-Path $coreDir 'bin\scoop.ps1'
+          $scoop = Join-Path $scoopDir 'shims\scoop.cmd'
+          if (-not (Test-Path $scoop)) { throw 'Installed Scoop command shim is missing.' }
           $env:PATH = "$(Join-Path $scoopDir 'shims');$env:PATH"
           & $scoop config aria2-enabled false
           if ($LASTEXITCODE -ne 0) { throw 'Scoop configuration failed.' }
