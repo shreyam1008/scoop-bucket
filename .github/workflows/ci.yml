@@ -45,7 +45,7 @@ jobs:
           & $validator $schema $manifests.FullName
           if ($LASTEXITCODE -ne 0) { throw 'Scoop manifest validation failed.' }
 
-      - name: Install and smoke test ProtoPeek
+      - name: Install and smoke test both products
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -71,33 +71,43 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Adding the local bucket failed.' }
           & $scoop install shreyam/protopeek
           if ($LASTEXITCODE -ne 0) { throw 'ProtoPeek installation failed.' }
+          & $scoop install shreyam/dbterm
+          if ($LASTEXITCODE -ne 0) { throw 'dbterm installation failed.' }
           if ((protopeek -version 2>&1) -notmatch 'v0\.4\.0') { throw 'protopeek version mismatch.' }
           if ((pp -version 2>&1) -notmatch 'v0\.4\.0') { throw 'pp version mismatch.' }
+          if ((dbterm --version 2>&1) -notmatch 'v0\.10\.0') { throw 'dbterm version mismatch.' }
           & $scoop update protopeek
           if ($LASTEXITCODE -ne 0) { throw 'ProtoPeek update failed.' }
+          & $scoop update dbterm
+          if ($LASTEXITCODE -ne 0) { throw 'dbterm update failed.' }
           & $scoop uninstall protopeek
           if ($LASTEXITCODE -ne 0) { throw 'ProtoPeek uninstall failed.' }
+          & $scoop uninstall dbterm
+          if ($LASTEXITCODE -ne 0) { throw 'dbterm uninstall failed.' }
           if (Test-Path (Join-Path $scoopDir 'shims\protopeek.*')) { throw 'protopeek shim was not removed.' }
           if (Test-Path (Join-Path $scoopDir 'shims\pp.*')) { throw 'pp shim was not removed.' }
+          if (Test-Path (Join-Path $scoopDir 'shims\dbterm.*')) { throw 'dbterm shim was not removed.' }
 
       - name: Verify autoupdate contract
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $sourceDir = Join-Path $env:GITHUB_WORKSPACE 'bucket-repo\bucket'
-          $updatedDir = Join-Path $env:RUNNER_TEMP 'autoupdate'
-          New-Item -ItemType Directory -Path $updatedDir | Out-Null
-          Copy-Item (Join-Path $sourceDir 'protopeek.json') $updatedDir
           $env:SCOOP = Join-Path $env:RUNNER_TEMP 'scoop'
           $env:SCOOP_HOME = Join-Path $env:GITHUB_WORKSPACE 'scoop-core'
-          & (Join-Path $env:SCOOP_HOME 'bin\checkver.ps1') -App protopeek -Dir $updatedDir -ForceUpdate -Version 0.4.0 -ThrowError
           $schema = Join-Path $env:SCOOP_HOME 'schema.json'
           $validator = Join-Path $env:SCOOP_HOME 'supporting\validator\bin\validator.exe'
-          & $validator $schema (Join-Path $updatedDir 'protopeek.json')
-          if ($LASTEXITCODE -ne 0) { throw 'Autoupdated manifest validation failed.' }
-          $expected = Get-Content (Join-Path $sourceDir 'protopeek.json') -Raw | ConvertFrom-Json
-          $actual = Get-Content (Join-Path $updatedDir 'protopeek.json') -Raw | ConvertFrom-Json
-          foreach ($arch in '64bit', 'arm64', '32bit') {
-            if ($actual.architecture.$arch.url -ne $expected.architecture.$arch.url) { throw "$arch URL drifted." }
-            if ($actual.architecture.$arch.hash -ne $expected.architecture.$arch.hash) { throw "$arch hash drifted." }
+          foreach ($app in @(@{ Name = 'protopeek'; Version = '0.4.0' }, @{ Name = 'dbterm'; Version = '0.10.0' })) {
+            $updatedDir = Join-Path $env:RUNNER_TEMP ("autoupdate-" + $app.Name)
+            New-Item -ItemType Directory -Path $updatedDir | Out-Null
+            $sourceManifest = Join-Path $env:GITHUB_WORKSPACE ("bucket-repo\bucket\" + $app.Name + ".json")
+            Copy-Item $sourceManifest $updatedDir
+            & (Join-Path $env:SCOOP_HOME 'bin\checkver.ps1') -App $app.Name -Dir $updatedDir -ForceUpdate -Version $app.Version -ThrowError
+            & $validator $schema (Join-Path $updatedDir ($app.Name + '.json'))
+            if ($LASTEXITCODE -ne 0) { throw ("Autoupdated manifest validation failed for " + $app.Name + ".") }
+            $expected = Get-Content $sourceManifest -Raw | ConvertFrom-Json
+            $actual = Get-Content (Join-Path $updatedDir ($app.Name + '.json')) -Raw | ConvertFrom-Json
+            foreach ($arch in '64bit', 'arm64') {
+              if ($actual.architecture.$arch.url -ne $expected.architecture.$arch.url) { throw ("$($app.Name) $arch URL drifted.") }
+              if ($actual.architecture.$arch.hash -ne $expected.architecture.$arch.hash) { throw ("$($app.Name) $arch hash drifted.") }
+            }
           }
