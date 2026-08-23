@@ -1,20 +1,21 @@
 {
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Local protocol workbench with native gRPC and HTTP, Linux path evidence, authorized local discovery, and a logical topology map.",
   "homepage": "https://protopeek.shreyam1008.com.np/",
   "license": "MIT",
+  "depends": "aria2",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/shreyam1008/ProtoPeek/releases/download/v0.4.0/protopeek_0.4.0_windows_x86_64.zip",
-      "hash": "948670802514678ff3abf6ebc6ea610fd279759b1fdd1dcb6cc3d7568dd86542"
+      "url": "https://github.com/shreyam1008/ProtoPeek/releases/download/v0.5.0/protopeek_0.5.0_windows_x86_64.zip",
+      "hash": "731c2deeee0f0db7edd7e85714a0eee76a872d3f52925ba4218ac780729f79e9"
     },
     "arm64": {
-      "url": "https://github.com/shreyam1008/ProtoPeek/releases/download/v0.4.0/protopeek_0.4.0_windows_arm64.zip",
-      "hash": "61343f58e428eb8855bf3286e7247c6cbcda8defa4618910a098ea0653e2ad48"
+      "url": "https://github.com/shreyam1008/ProtoPeek/releases/download/v0.5.0/protopeek_0.5.0_windows_arm64.zip",
+      "hash": "935a45315716e14132d39e1686e9caf85817d8f58e14eec33e1eb309136fa51b"
     },
     "32bit": {
-      "url": "https://github.com/shreyam1008/ProtoPeek/releases/download/v0.4.0/protopeek_0.4.0_windows_x86_32.zip",
-      "hash": "fdb1e39da08b914dad9c9d6c37893034b2ccbdcb4d5ba52704836de74b318207"
+      "url": "https://github.com/shreyam1008/ProtoPeek/releases/download/v0.5.0/protopeek_0.5.0_windows_x86_32.zip",
+      "hash": "f5ae8f5916e5faf4f39b1a63f6ec0005c54aa1d5c636dc92bc0f494063df2895"
     }
   },
   "bin": [

@@ -71,13 +71,17 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Adding the local bucket failed.' }
           & $scoop install shreyam/protopeek
           if ($LASTEXITCODE -ne 0) { throw 'ProtoPeek installation failed.' }
+          $aria2 = Join-Path $scoopDir 'apps\aria2\current\aria2c.exe'
+          if (-not (Test-Path $aria2)) { throw 'ProtoPeek runtime dependency aria2 was not installed.' }
+          $aria2Version = (& $aria2 --version 2>&1 | Out-String)
+          if ($aria2Version -notmatch 'aria2 version') { throw 'aria2 runtime dependency is not executable.' }
           & $scoop install shreyam/dbterm
           if ($LASTEXITCODE -ne 0) { throw 'dbterm installation failed.' }
           $protopeekVersion = (protopeek -version 2>&1 | Out-String)
           $ppVersion = (pp -version 2>&1 | Out-String)
           $dbtermVersion = (dbterm --version 2>&1 | Out-String)
-          if ($protopeekVersion -notmatch 'v0\.4\.0') { throw 'protopeek version mismatch.' }
-          if ($ppVersion -notmatch 'v0\.4\.0') { throw 'pp version mismatch.' }
+          if ($protopeekVersion -notmatch 'v0\.5\.0') { throw 'protopeek version mismatch.' }
+          if ($ppVersion -notmatch 'v0\.5\.0') { throw 'pp version mismatch.' }
           if ($dbtermVersion -notmatch '0\.10\.0') { throw 'dbterm version mismatch.' }
           & $scoop update protopeek
           if ($LASTEXITCODE -ne 0) { throw 'ProtoPeek update failed.' }
@@ -99,7 +103,7 @@ jobs:
           $env:SCOOP_HOME = Join-Path $env:GITHUB_WORKSPACE 'scoop-core'
           $schema = Join-Path $env:SCOOP_HOME 'schema.json'
           $validator = Join-Path $env:SCOOP_HOME 'supporting\validator\bin\validator.exe'
-          foreach ($app in @(@{ Name = 'protopeek'; Version = '0.4.0' }, @{ Name = 'dbterm'; Version = '0.10.0' })) {
+          foreach ($app in @(@{ Name = 'protopeek'; Version = '0.5.0' }, @{ Name = 'dbterm'; Version = '0.10.0' })) {
             $updatedDir = Join-Path $env:RUNNER_TEMP ("autoupdate-" + $app.Name)
             New-Item -ItemType Directory -Path $updatedDir | Out-Null
             $sourceManifest = Join-Path $env:GITHUB_WORKSPACE ("bucket-repo\bucket\" + $app.Name + ".json")
@@ -109,8 +113,10 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw ("Autoupdated manifest validation failed for " + $app.Name + ".") }
             $expected = Get-Content $sourceManifest -Raw | ConvertFrom-Json
             $actual = Get-Content (Join-Path $updatedDir ($app.Name + '.json')) -Raw | ConvertFrom-Json
-            foreach ($arch in '64bit', 'arm64') {
+            $architectures = if ($app.Name -eq 'protopeek') { '64bit', 'arm64', '32bit' } else { '64bit', 'arm64' }
+            foreach ($arch in $architectures) {
               if ($actual.architecture.$arch.url -ne $expected.architecture.$arch.url) { throw ("$($app.Name) $arch URL drifted.") }
               if ($actual.architecture.$arch.hash -ne $expected.architecture.$arch.hash) { throw ("$($app.Name) $arch hash drifted.") }
             }
+            if ($actual.depends -ne $expected.depends) { throw ("$($app.Name) runtime dependencies drifted.") }
           }
