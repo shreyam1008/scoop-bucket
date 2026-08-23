@@ -71,6 +71,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Adding the local bucket failed.' }
           & $scoop install shreyam/protopeek
           if ($LASTEXITCODE -ne 0) { throw 'ProtoPeek installation failed.' }
+          $aria2 = Join-Path $scoopDir 'apps\aria2\current\aria2c.exe'
+          if (-not (Test-Path $aria2)) { throw 'ProtoPeek runtime dependency aria2 was not installed.' }
+          $aria2Version = (& $aria2 --version 2>&1 | Out-String)
+          if ($aria2Version -notmatch 'aria2 version') { throw 'aria2 runtime dependency is not executable.' }
           & $scoop install shreyam/dbterm
           if ($LASTEXITCODE -ne 0) { throw 'dbterm installation failed.' }
           $protopeekVersion = (protopeek -version 2>&1 | Out-String)
@@ -113,4 +117,5 @@ jobs:
               if ($actual.architecture.$arch.url -ne $expected.architecture.$arch.url) { throw ("$($app.Name) $arch URL drifted.") }
               if ($actual.architecture.$arch.hash -ne $expected.architecture.$arch.hash) { throw ("$($app.Name) $arch hash drifted.") }
             }
+            if ($actual.depends -ne $expected.depends) { throw ("$($app.Name) runtime dependencies drifted.") }
           }

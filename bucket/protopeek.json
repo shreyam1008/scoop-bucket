@@ -3,6 +3,7 @@
   "description": "Local protocol workbench with native gRPC and HTTP, Linux path evidence, authorized local discovery, and a logical topology map.",
   "homepage": "https://protopeek.shreyam1008.com.np/",
   "license": "MIT",
+  "depends": "aria2",
   "architecture": {
     "64bit": {
       "url": "https://github.com/shreyam1008/ProtoPeek/releases/download/v0.4.0/protopeek_0.4.0_windows_x86_64.zip",
