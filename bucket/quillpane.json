@@ -1,0 +1,41 @@
+{
+  "version": "0.13.3",
+  "description": "Quillpane (formerly Markpad) is a small native Markdown notepad and local file viewer. No Electron and no cloud account.",
+  "homepage": "https://quillpane.shreyam1008.com.np/",
+  "license": "MIT",
+  "architecture": {
+    "64bit": {
+      "url": "https://github.com/shreyam1008/markpad/releases/download/v0.13.3/markpad-setup.exe",
+      "hash": "9be26c7fa579fb57bffac37a35dd850b59e03883380f5ba640657a49c99128af"
+    }
+  },
+  "installer": {
+    "script": [
+      "$installer = \"$dir\\markpad-setup.exe\"",
+      "Start-Process -Wait -FilePath $installer -ArgumentList '/S'",
+      "Remove-Item $installer"
+    ]
+  },
+  "shortcuts": [
+    [
+      "C:\\Program Files (x86)\\Markpad\\markpad.exe",
+      "Quillpane"
+    ]
+  ],
+  "uninstaller": {
+    "script": [
+      "$uninstaller = \"C:\\Program Files (x86)\\Markpad\\uninstall.exe\"",
+      "if (Test-Path $uninstaller) { Start-Process -Wait $uninstaller -ArgumentList '/S' }"
+    ]
+  },
+  "checkver": {
+    "github": "https://github.com/shreyam1008/markpad"
+  },
+  "autoupdate": {
+    "architecture": {
+      "64bit": {
+        "url": "https://github.com/shreyam1008/markpad/releases/download/v$version/markpad-setup.exe"
+      }
+    }
+  }
+}
