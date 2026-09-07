@@ -84,8 +84,8 @@ jobs:
           $protopeekVersion = (protopeek -version 2>&1 | Out-String)
           $ppVersion = (pp -version 2>&1 | Out-String)
           $dbtermVersion = (dbterm --version 2>&1 | Out-String)
-          if ($protopeekVersion -notmatch 'v0\.5\.0') { throw 'protopeek version mismatch.' }
-          if ($ppVersion -notmatch 'v0\.5\.0') { throw 'pp version mismatch.' }
+          if ($protopeekVersion -notmatch 'v0\.6\.1') { throw 'protopeek version mismatch.' }
+          if ($ppVersion -notmatch 'v0\.6\.1') { throw 'pp version mismatch.' }
           if ($dbtermVersion -notmatch '0\.10\.0') { throw 'dbterm version mismatch.' }
           & $scoop update protopeek
           if ($LASTEXITCODE -ne 0) { throw 'ProtoPeek update failed.' }
@@ -112,7 +112,7 @@ jobs:
           $env:SCOOP_HOME = Join-Path $env:GITHUB_WORKSPACE 'scoop-core'
           $schema = Join-Path $env:SCOOP_HOME 'schema.json'
           $validator = Join-Path $env:SCOOP_HOME 'supporting\validator\bin\validator.exe'
-          foreach ($app in @(@{ Name = 'protopeek'; Version = '0.5.0' }, @{ Name = 'dbterm'; Version = '0.10.0' }, @{ Name = 'quillpane'; Version = '0.13.3' })) {
+          foreach ($app in @(@{ Name = 'protopeek'; Version = '0.6.1' }, @{ Name = 'dbterm'; Version = '0.10.0' }, @{ Name = 'quillpane'; Version = '0.13.3' })) {
             $updatedDir = Join-Path $env:RUNNER_TEMP ("autoupdate-" + $app.Name)
             New-Item -ItemType Directory -Path $updatedDir | Out-Null
             $sourceManifest = Join-Path $env:GITHUB_WORKSPACE ("bucket-repo\bucket\" + $app.Name + ".json")
