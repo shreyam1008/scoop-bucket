@@ -112,11 +112,12 @@ jobs:
           $env:SCOOP_HOME = Join-Path $env:GITHUB_WORKSPACE 'scoop-core'
           $schema = Join-Path $env:SCOOP_HOME 'schema.json'
           $validator = Join-Path $env:SCOOP_HOME 'supporting\validator\bin\validator.exe'
-          foreach ($app in @(@{ Name = 'protopeek'; Version = '0.6.1' }, @{ Name = 'dbterm'; Version = '0.10.0' }, @{ Name = 'quillpane'; Version = '0.13.3' })) {
+          foreach ($app in @(@{ Name = 'protopeek'; Version = '0.6.1' }, @{ Name = 'dbterm'; Version = '0.10.0' }, @{ Name = 'quillpane' })) {
             $updatedDir = Join-Path $env:RUNNER_TEMP ("autoupdate-" + $app.Name)
             New-Item -ItemType Directory -Path $updatedDir | Out-Null
             $sourceManifest = Join-Path $env:GITHUB_WORKSPACE ("bucket-repo\bucket\" + $app.Name + ".json")
             Copy-Item $sourceManifest $updatedDir
+            if ($app.Name -eq 'quillpane') { $app.Version = (Get-Content $sourceManifest -Raw | ConvertFrom-Json).version }
             & (Join-Path $env:SCOOP_HOME 'bin\checkver.ps1') -App $app.Name -Dir $updatedDir -ForceUpdate -Version $app.Version -ThrowError
             & $validator $schema (Join-Path $updatedDir ($app.Name + '.json'))
             if ($LASTEXITCODE -ne 0) { throw ("Autoupdated manifest validation failed for " + $app.Name + ".") }
