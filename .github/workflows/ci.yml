@@ -5,12 +5,14 @@ on:
     branches:
       - main
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
   protopeek:
+    name: All product packages
     runs-on: windows-latest
     timeout-minutes: 20
     env:
@@ -84,9 +86,21 @@ jobs:
           $protopeekVersion = (protopeek -version 2>&1 | Out-String)
           $ppVersion = (pp -version 2>&1 | Out-String)
           $dbtermVersion = (dbterm --version 2>&1 | Out-String)
-          if ($protopeekVersion -notmatch 'v0\.6\.1') { throw 'protopeek version mismatch.' }
-          if ($ppVersion -notmatch 'v0\.6\.1') { throw 'pp version mismatch.' }
-          if ($dbtermVersion -notmatch '0\.10\.0') { throw 'dbterm version mismatch.' }
+          $quillpaneVersion = (& $quillpaneExe --version 2>&1 | Out-String)
+          foreach ($app in @(
+            @{ Name = 'protopeek'; Output = $protopeekVersion },
+            @{ Name = 'protopeek'; Output = $ppVersion },
+            @{ Name = 'dbterm'; Output = $dbtermVersion },
+            @{ Name = 'quillpane'; Output = $quillpaneVersion }
+          )) {
+            $manifestPath = Join-Path $bucketPath ("bucket\" + $app.Name + ".json")
+            $expectedVersion = (Get-Content $manifestPath -Raw | ConvertFrom-Json).version
+            if ([string]::IsNullOrWhiteSpace($expectedVersion)) { throw ("Missing manifest version for " + $app.Name) }
+            $versionPattern = '(?<![0-9.])v?' + [regex]::Escape($expectedVersion) + '(?![0-9.])'
+            if ($app.Output -notmatch $versionPattern) {
+              throw ("$($app.Name) executable does not report manifest version $expectedVersion. Actual: $($app.Output)")
+            }
+          }
           & $scoop update protopeek
           if ($LASTEXITCODE -ne 0) { throw 'ProtoPeek update failed.' }
           & $scoop update dbterm
@@ -112,12 +126,13 @@ jobs:
           $env:SCOOP_HOME = Join-Path $env:GITHUB_WORKSPACE 'scoop-core'
           $schema = Join-Path $env:SCOOP_HOME 'schema.json'
           $validator = Join-Path $env:SCOOP_HOME 'supporting\validator\bin\validator.exe'
-          foreach ($app in @(@{ Name = 'protopeek'; Version = '0.6.1' }, @{ Name = 'dbterm'; Version = '0.10.0' }, @{ Name = 'quillpane' })) {
+          foreach ($app in @(@{ Name = 'protopeek' }, @{ Name = 'dbterm' }, @{ Name = 'quillpane' })) {
             $updatedDir = Join-Path $env:RUNNER_TEMP ("autoupdate-" + $app.Name)
             New-Item -ItemType Directory -Path $updatedDir | Out-Null
             $sourceManifest = Join-Path $env:GITHUB_WORKSPACE ("bucket-repo\bucket\" + $app.Name + ".json")
             Copy-Item $sourceManifest $updatedDir
-            if ($app.Name -eq 'quillpane') { $app.Version = (Get-Content $sourceManifest -Raw | ConvertFrom-Json).version }
+            $app.Version = (Get-Content $sourceManifest -Raw | ConvertFrom-Json).version
+            if ([string]::IsNullOrWhiteSpace($app.Version)) { throw ("Missing manifest version for " + $app.Name) }
             & (Join-Path $env:SCOOP_HOME 'bin\checkver.ps1') -App $app.Name -Dir $updatedDir -ForceUpdate -Version $app.Version -ThrowError
             & $validator $schema (Join-Path $updatedDir ($app.Name + '.json'))
             if ($LASTEXITCODE -ne 0) { throw ("Autoupdated manifest validation failed for " + $app.Name + ".") }
